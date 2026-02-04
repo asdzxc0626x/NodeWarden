@@ -3,11 +3,13 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 # KV Namespace for storing vault data
+# 注意：id 使用占位符，在 GitHub Actions 部署时会被替换为真实值
 [[kv_namespaces]]
 binding = "VAULT"
-id = "placeholder"
+id = "{{KV_NAMESPACE_ID}}"
 
 # R2 Bucket for storing attachments
+# 注意：bucket_name 使用占位符，在 GitHub Actions 部署时会被替换为真实值
 [[r2_buckets]]
 binding = "ATTACHMENTS"
-bucket_name = "nodewarden-attachments"
+bucket_name = "{{R2_BUCKET_NAME}}"

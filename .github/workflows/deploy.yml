@@ -25,6 +25,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Configure wrangler.toml with secrets
+        run: |
+          # 替换 KV namespace ID 和 R2 bucket name
+          sed -i 's/{{KV_NAMESPACE_ID}}/${{ secrets.KV_NAMESPACE_ID }}/g' wrangler.toml
+          sed -i 's/{{R2_BUCKET_NAME}}/${{ secrets.R2_BUCKET_NAME }}/g' wrangler.toml
+          echo "✅ wrangler.toml configured with secrets"
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

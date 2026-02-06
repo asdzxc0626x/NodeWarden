@@ -145,6 +145,26 @@ export interface JWTPayload {
   premium: boolean;
 }
 
+// UserDecryptionOptions types for mobile client compatibility
+export interface MasterPasswordUnlockKdf {
+  KdfType: number;
+  Iterations: number;
+  Memory: number | null;
+  Parallelism: number | null;
+}
+
+export interface MasterPasswordUnlock {
+  Kdf: MasterPasswordUnlockKdf;
+  MasterKeyEncryptedUserKey: string;
+  Salt: string;
+}
+
+export interface UserDecryptionOptions {
+  HasMasterPassword: boolean;
+  Object: string;
+  MasterPasswordUnlock?: MasterPasswordUnlock;
+}
+
 // API Response types
 export interface TokenResponse {
   access_token: string;
@@ -161,10 +181,7 @@ export interface TokenResponse {
   ResetMasterPassword: boolean;
   scope: string;
   unofficialServer: boolean;
-  UserDecryptionOptions: {
-    HasMasterPassword: boolean;
-    Object: string;
-  };
+  UserDecryptionOptions: UserDecryptionOptions;
 }
 
 export interface ProfileResponse {

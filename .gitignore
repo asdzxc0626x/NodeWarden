@@ -4,6 +4,7 @@ node_modules/
 # Wrangler
 .wrangler/
 .dev.vars
+RELEASE_NOTES.md
 
 # Build output
 dist/

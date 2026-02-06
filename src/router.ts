@@ -35,7 +35,7 @@ import {
 import { handleSync } from './handlers/sync';
 
 // Setup handlers
-import { handleSetupPage, handleSetupStatus } from './handlers/setup';
+import { handleSetupPage, handleSetupStatus, handleDisableSetup } from './handlers/setup';
 
 // Import handler
 import { handleCiphersImport } from './handlers/import';
@@ -97,6 +97,11 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
     // Setup status
     if (path === '/setup/status' && method === 'GET') {
       return handleSetupStatus(request, env);
+    }
+
+    // Disable setup page (one-way)
+    if (path === '/setup/disable' && method === 'POST') {
+      return handleDisableSetup(request, env);
     }
 
     // Favicon - return empty
@@ -208,6 +213,22 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
 
     // Increment rate limit counter
     await rateLimit.incrementApiCount(userId + ':' + clientId);
+
+    // Block account operations that could change password or delete user
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+      const blockedAccountPaths = new Set([
+        '/api/accounts/password',
+        '/api/accounts/change-password',
+        '/api/accounts/set-password',
+        '/api/accounts/master-password',
+        '/api/accounts/delete',
+        '/api/accounts/delete-account',
+        '/api/accounts/delete-vault',
+      ]);
+      if (blockedAccountPaths.has(path)) {
+        return errorResponse('This operation is disabled', 403);
+      }
+    }
 
     // Account endpoints
     if (path === '/api/accounts/profile') {

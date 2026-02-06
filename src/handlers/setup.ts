@@ -329,6 +329,14 @@ const setupPageHTML = `<!DOCTYPE html>
             If you forget it, you must redeploy and register again.
           </p>
         </div>
+
+        <div class="kv">
+          <h3 id="t_hide_title">Hide setup page</h3>
+          <p id="t_hide_desc">After hiding, this setup page will return 404 for everyone. Your vault will keep working.</p>
+          <div class="actions">
+            <button type="button" id="hideBtn" class="primary" onclick="disableSetupPage()">Hide setup page</button>
+          </div>
+        </div>
       </div>
 
       <div class="footer">
@@ -345,6 +353,7 @@ const setupPageHTML = `<!DOCTYPE html>
 
   <script>
     const AUTHOR = { name: 'shuaiplus', website: 'https://shuai.plus', github: 'https://github.com/shuaiplus/nodewarden' };
+    let isRegistered = false;
 
     function isChinese() {
       const lang = (navigator.language || '').toLowerCase();
@@ -369,6 +378,13 @@ const setupPageHTML = `<!DOCTYPE html>
         doneDesc: '服务已就绪。在 Bitwarden 客户端中填入以下服务器地址：',
         important: '重要提示',
         limitations: '本项目仅支持单用户：不能添加新用户；不支持修改主密码；如果忘记主密码，只能重新部署并重新注册。',
+        hideTitle: '隐藏初始化页',
+        hideDesc: '隐藏后，初始化页对任何人都会直接返回 404。你的密码库仍可正常使用。',
+        hideBtn: '隐藏初始化页',
+        hideWorking: '正在隐藏…',
+        hideDone: '已隐藏，此页面将返回 404。',
+        hideFailed: '隐藏失败',
+        hideConfirm: '确认隐藏初始化页？隐藏后页面将不可访问，但你的密码库不会受影响。',
         errPwNotMatch: '两次输入的密码不一致',
         errPwTooShort: '密码长度至少 12 位',
         errGeneric: '发生错误：',
@@ -391,6 +407,13 @@ const setupPageHTML = `<!DOCTYPE html>
         doneDesc: 'Your server is ready. Configure your Bitwarden client with this server URL:',
         important: 'Important',
         limitations: 'Single user only: you cannot add new users. Changing the master password is not supported. If you forget it, redeploy and register again.',
+        hideTitle: 'Hide setup page',
+        hideDesc: 'After hiding, this setup page will return 404 for everyone. Your vault will keep working.',
+        hideBtn: 'Hide setup page',
+        hideWorking: 'Hiding…',
+        hideDone: 'Hidden. This page will now return 404.',
+        hideFailed: 'Failed to hide setup page',
+        hideConfirm: 'Hide the setup page? It will no longer be accessible, but your vault will keep working.',
         errPwNotMatch: 'Passwords do not match',
         errPwTooShort: 'Password must be at least 12 characters',
         errGeneric: 'An error occurred: ',
@@ -419,6 +442,9 @@ const setupPageHTML = `<!DOCTYPE html>
       document.getElementById('t_done_desc').textContent = t('doneDesc');
       document.getElementById('t_important').textContent = t('important');
       document.getElementById('t_limitations').textContent = t('limitations');
+      document.getElementById('t_hide_title').textContent = t('hideTitle');
+      document.getElementById('t_hide_desc').textContent = t('hideDesc');
+      document.getElementById('hideBtn').textContent = t('hideBtn');
     }
 
     // Check if already registered
@@ -426,6 +452,7 @@ const setupPageHTML = `<!DOCTYPE html>
       try {
         const res = await fetch('/setup/status');
         const data = await res.json();
+        isRegistered = !!data.registered;
         if (data.registered) {
           showRegisteredView();
         }
@@ -435,10 +462,47 @@ const setupPageHTML = `<!DOCTYPE html>
     }
     
     function showRegisteredView() {
+      isRegistered = true;
       document.getElementById('setup-form').style.display = 'none';
       document.getElementById('registered-view').style.display = 'block';
       document.getElementById('serverUrl').textContent = window.location.origin;
   showMessage(t('doneTitle'), 'success');
+      const form = document.getElementById('form');
+      if (form) {
+        const fields = form.querySelectorAll('input, button');
+        fields.forEach((el) => {
+          el.disabled = true;
+        });
+      }
+    }
+
+    async function disableSetupPage() {
+      if (!isRegistered) return;
+      if (!confirm(t('hideConfirm'))) return;
+
+      const btn = document.getElementById('hideBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('hideWorking');
+      }
+
+      try {
+        const res = await fetch('/setup/disable', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showMessage(t('hideDone'), 'success');
+          setTimeout(() => window.location.reload(), 600);
+          return;
+        }
+        showMessage(data.error || t('hideFailed'), 'error');
+      } catch (e) {
+        showMessage(t('hideFailed'), 'error');
+      }
+
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = t('hideBtn');
+      }
     }
     
     function showMessage(text, type) {
@@ -606,6 +670,11 @@ const setupPageHTML = `<!DOCTYPE html>
     
     async function handleSubmit(event) {
       event.preventDefault();
+
+      if (isRegistered) {
+        showMessage(t('doneTitle'), 'success');
+        return;
+      }
       
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value.toLowerCase();
@@ -698,6 +767,11 @@ const setupPageHTML = `<!DOCTYPE html>
 
 // GET / - Setup page
 export async function handleSetupPage(request: Request, env: Env): Promise<Response> {
+  const storage = new StorageService(env.VAULT);
+  const disabled = await storage.isSetupDisabled();
+  if (disabled) {
+    return new Response(null, { status: 404 });
+  }
   return htmlResponse(setupPageHTML);
 }
 
@@ -705,5 +779,17 @@ export async function handleSetupPage(request: Request, env: Env): Promise<Respo
 export async function handleSetupStatus(request: Request, env: Env): Promise<Response> {
   const storage = new StorageService(env.VAULT);
   const registered = await storage.isRegistered();
-  return jsonResponse({ registered });
+  const disabled = await storage.isSetupDisabled();
+  return jsonResponse({ registered, disabled });
+}
+
+// POST /setup/disable
+export async function handleDisableSetup(request: Request, env: Env): Promise<Response> {
+  const storage = new StorageService(env.VAULT);
+  const registered = await storage.isRegistered();
+  if (!registered) {
+    return errorResponse('Registration required', 403);
+  }
+  await storage.setSetupDisabled();
+  return jsonResponse({ success: true });
 }

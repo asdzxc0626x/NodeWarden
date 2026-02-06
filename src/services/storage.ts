@@ -2,6 +2,7 @@ import { Env, User, Cipher, Folder, Attachment } from '../types';
 
 const KEYS = {
   CONFIG_REGISTERED: 'config:registered',
+  CONFIG_SETUP_DISABLED: 'config:setup_disabled',
   USER_PREFIX: 'user:',
   CIPHER_PREFIX: 'cipher:',
   FOLDER_PREFIX: 'folder:',
@@ -24,6 +25,16 @@ export class StorageService {
 
   async setRegistered(): Promise<void> {
     await this.kv.put(KEYS.CONFIG_REGISTERED, 'true');
+  }
+
+  // Setup page visibility
+  async isSetupDisabled(): Promise<boolean> {
+    const value = await this.kv.get(KEYS.CONFIG_SETUP_DISABLED);
+    return value === 'true';
+  }
+
+  async setSetupDisabled(): Promise<void> {
+    await this.kv.put(KEYS.CONFIG_SETUP_DISABLED, 'true');
   }
 
   // User operations

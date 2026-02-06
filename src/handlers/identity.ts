@@ -85,6 +85,16 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
       UserDecryptionOptions: {
         HasMasterPassword: true,
         Object: 'userDecryptionOptions',
+        MasterPasswordUnlock: {
+          Kdf: {
+            KdfType: user.kdfType,
+            Iterations: user.kdfIterations,
+            Memory: user.kdfMemory || null,
+            Parallelism: user.kdfParallelism || null,
+          },
+          MasterKeyEncryptedUserKey: user.key,
+          Salt: email, // email is already lowercased above
+        },
       },
     };
 

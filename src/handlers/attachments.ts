@@ -196,7 +196,7 @@ export async function handleGetAttachment(
     url: downloadUrl,
     fileName: attachment.fileName,
     key: attachment.key,
-    size: String(attachment.size),
+    size: Number(attachment.size) || 0,
     sizeName: attachment.sizeName,
   });
 }
@@ -304,7 +304,7 @@ function formatCipherResponse(cipher: Cipher, attachments: Attachment[]): any {
     id: cipher.id,
     organizationId: null,
     folderId: cipher.folderId,
-    type: cipher.type,
+    type: Number(cipher.type) || 1,
     name: cipher.name,
     notes: cipher.notes,
     favorite: cipher.favorite,
@@ -312,6 +312,7 @@ function formatCipherResponse(cipher: Cipher, attachments: Attachment[]): any {
     card: cipher.card,
     identity: cipher.identity,
     secureNote: cipher.secureNote,
+    sshKey: cipher.sshKey,
     fields: cipher.fields,
     passwordHistory: cipher.passwordHistory,
     reprompt: cipher.reprompt,
@@ -319,19 +320,26 @@ function formatCipherResponse(cipher: Cipher, attachments: Attachment[]): any {
     creationDate: cipher.createdAt,
     revisionDate: cipher.updatedAt,
     deletedDate: cipher.deletedAt,
+    archivedDate: null,
     edit: true,
     viewPassword: true,
-    permissions: null,
+    permissions: {
+      delete: true,
+      restore: true,
+    },
     object: 'cipher',
     collectionIds: [],
     attachments: attachments.length > 0 ? attachments.map(a => ({
       id: a.id,
       fileName: a.fileName,
-      size: String(a.size),
+      size: Number(a.size) || 0,
       sizeName: a.sizeName,
       key: a.key,
+      url: `/api/ciphers/${a.cipherId}/attachment/${a.id}`,
       object: 'attachment',
     })) : null,
+    key: cipher.key,
+    encryptedFor: null,
   };
 }
 

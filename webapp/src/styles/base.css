@@ -1,0 +1,22 @@
+* {
+  @apply box-border;
+}
+
+html,
+body,
+#root {
+  @apply m-0 h-full w-full p-0;
+  color: var(--text);
+  background: var(--bg-accent);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+
+body {
+  @apply relative antialiased;
+  transition: background-color var(--dur-medium) var(--ease-smooth), color var(--dur-medium) var(--ease-smooth);
+}
+
+body.dialog-open {
+  @apply overflow-hidden;
+  overscroll-behavior: contain;
+}
